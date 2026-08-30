@@ -1,7 +1,8 @@
 # Deployment (Vercel Git auto-deploy)
 
 This repository is connected to the Vercel project `reviewpilot` (team `alay-s-projects`).
-Pushing to `main` auto-deploys to **https://reviewpilot.vercel.app**.
+Pushing to `main` auto-deploys to the stable production URL
+**https://reviewpilot-alay-s-projects.vercel.app**.
 
 `vercel.json` points Vercel's build at `bash ./build-vercel.sh`, which emits a Vercel
 Build Output API v3 bundle (`.vercel/output`) — this is why Git deploys now produce a
