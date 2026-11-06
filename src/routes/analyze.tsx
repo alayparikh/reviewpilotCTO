@@ -338,8 +338,8 @@ function Results({ result }: { result: AnalyzeResult }) {
     <div className="mt-8 space-y-6">
       {demoAny && (
         <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800">
-          <span className="font-semibold">Demo analysis.</span> Connect real provider keys (Outscraper
-          + AI) in Settings for live data. Results below use clearly-labeled demo fallbacks.
+          <span className="font-semibold">Demo analysis.</span> Connect your Google review data source
+          and AI provider in Settings for live data. Results below use clearly-labeled demo fallbacks.
         </div>
       )}
       {result.error && (

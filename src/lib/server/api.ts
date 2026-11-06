@@ -19,7 +19,7 @@ import { TONES } from "../types";
 import { generateReply } from "./ai";
 import { analyzeCompetitiveInsights, analyzeOwner } from "./intel";
 import { ensureAutomationLoop, runAutomationOnce } from "./automation";
-import { fetchGoogleReviews, searchPlaces } from "./outscraper";
+import { fetchGoogleReviews, searchPlaces } from "./reviewSource";
 import { getStore, isDemoMode } from "./store";
 
 function getFlags(): AppFlags {
@@ -27,8 +27,8 @@ function getFlags(): AppFlags {
     demoMode: isDemoMode(),
     // Anthropic powers AI reply generation.
     aiConnected: Boolean(process.env.ANTHROPIC_API_KEY),
-    // Outscraper powers real Google review fetching.
-    outscraperConnected: Boolean(process.env.OUTSCRAPER_API_KEY),
+    // The review-data provider powers real Google review fetching.
+    reviewsSourceConnected: Boolean(process.env.REVIEWS_API_KEY),
   };
 }
 
@@ -80,7 +80,7 @@ export const updateSettings = createServerFn({ method: "POST" })
   });
 
 /**
- * Fetch Google reviews for the saved business query via Outscraper and add them
+ * Fetch Google reviews for the saved business query and add them
  * to the feed. Never throws: a missing key, failed call, or empty result comes
  * back as an error message the UI can show, and the app keeps working with the
  * seeded demo reviews.
@@ -166,7 +166,7 @@ export const getCompetitors = createServerFn({ method: "GET" }).handler(async ()
 });
 
 /**
- * Fetch Google reviews for a competitor query via Outscraper and persist the
+ * Fetch Google reviews for a competitor query and persist the
  * competitor + its reviews. Never throws: a missing key, failed call, or empty
  * result comes back as an error message the UI can show.
  */
@@ -217,7 +217,7 @@ export interface AnalyzePlaceInput {
   query: string;
   /** Display name for the place. */
   label: string;
-  /** Outscraper place_id, when known. */
+  /** Provider place_id, when known. */
   placeId?: string;
   /** Place's overall Google rating, when known. */
   googleRating?: number;

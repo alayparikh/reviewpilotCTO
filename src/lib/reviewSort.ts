@@ -3,8 +3,8 @@
 // The store layer is the single source of truth for feed ordering: every read
 // (getState, listReviews) returns reviews sorted by date descending, so the
 // dashboard feed is correct regardless of insertion order (seed array order,
-// Outscraper fetch order, or automation-driven updates). Outscraper also uses
-// this defensively after mapping a raw API response.
+// API fetch order, or automation-driven updates). The review-source module also
+// uses this defensively after mapping a raw API response.
 //
 // `date` is an ISO string; sorting uses Date.parse so unparseable dates fall
 // back to 0 (oldest). A stable tiebreak on id keeps ordering deterministic so

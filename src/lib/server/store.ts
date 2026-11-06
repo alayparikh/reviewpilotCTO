@@ -21,7 +21,7 @@ export interface Store {
   listReviews(): Promise<Review[]>;
   getReview(id: string): Promise<Review | null>;
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
-  /** Add externally-fetched reviews (e.g. Outscraper), skipping duplicates. Returns count added. */
+  /** Add externally-fetched reviews, skipping duplicates. Returns count added. */
   addReviews(reviews: Review[]): Promise<number>;
   /** Mark a review answered with the drafted reply. Returns the updated review. */
   markAnswered(

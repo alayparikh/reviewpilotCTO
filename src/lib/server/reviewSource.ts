@@ -1,35 +1,42 @@
-// Server-only module for fetching Google reviews via the Outscraper API.
+// Server-only module for fetching Google reviews from an external review-data
+// API. The provider is deliberately not named in this repository: its base
+// URLs, endpoint paths and key all come from environment variables, so the
+// source never reveals which service supplies the review data.
 //
-// Endpoint verified against Outscraper's public docs and SDK source:
-//   - SDK (github.com/outscraper/outscraper-python): outscraper/transport.py
-//     lists base URLs https://api.app.outscraper.com and
-//     https://api.app.outscraper.cloud and the X-API-KEY header;
-//     outscraper/client.py's google_maps_reviews() calls GET /maps/reviews-v3
-//     with params query / reviewsLimit / limit / sort / language (doc:
-//     https://app.outscraper.com/api-docs#tag/Google/paths/~1maps~1reviews-v3/get).
-//   - Live testing (2026-08-11) with the team key: api.app.outscraper.com
-//     rejects the key (401), while api.outscraper.cloud accepts it and returns
-//     HTTP 202 { status: "Pending", results_location } which is polled until
-//     { status: "Success", data: [place...] }. Place reviews live under
-//     reviews_data[] with review_text / review_rating / author_title /
-//     review_timestamp (unix seconds).
+//   REVIEWS_API_KEY           API key for the review-data provider
+//   REVIEWS_API_URLS          comma-separated base URLs, tried in order
+//   REVIEWS_API_SEARCH_PATH   path of the business-search endpoint
+//   REVIEWS_API_REVIEWS_PATH  path of the reviews endpoint
 //
-// Everything here is defensive: a missing key, a bad response, or a changed
+// Everything here is defensive: missing config, a bad response, or a changed
 // response shape degrades to an error message instead of crashing. The app
 // keeps working with seeded demo reviews in all of those cases.
 
 import type { Review } from "../types";
 import { sortReviewsNewestFirst } from "../reviewSort";
 
-const OUTSCRAPER_HOSTS = [
-  "https://api.app.outscraper.com",
-  "https://api.outscraper.cloud",
-];
-const REVIEWS_PATH = "/maps/reviews-v3";
-const SEARCH_PATH = "/maps/search-v3";
 const REQUEST_TIMEOUT_MS = 20_000;
 const POLL_INTERVAL_MS = 2_000;
 const TOTAL_TIMEOUT_MS = 45_000;
+
+interface ReviewSourceConfig {
+  key: string;
+  urls: string[];
+  searchPath: string;
+  reviewsPath: string;
+}
+
+/** Read provider configuration from the environment (never hard-coded). */
+function reviewSourceConfig(): ReviewSourceConfig {
+  const key = (process.env.REVIEWS_API_KEY ?? "").trim();
+  const urls = (process.env.REVIEWS_API_URLS ?? "")
+    .split(",")
+    .map((u) => u.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+  const searchPath = (process.env.REVIEWS_API_SEARCH_PATH ?? "").trim();
+  const reviewsPath = (process.env.REVIEWS_API_REVIEWS_PATH ?? "").trim();
+  return { key, urls, searchPath, reviewsPath };
+}
 
 export interface FetchGoogleReviewsResult {
   reviews: Review[];
@@ -38,7 +45,7 @@ export interface FetchGoogleReviewsResult {
 
 /** A place that matched a search — used for disambiguation ("which location?"). */
 export interface PlaceCandidate {
-  /** Outscraper place_id, when present. */
+  /** Provider place id, when present. */
   id?: string;
   name: string;
   /** Human-readable address (city, state…). */
@@ -60,12 +67,15 @@ export async function searchPlaces(
   query: string,
   locationHint?: string,
 ): Promise<{ places: PlaceCandidate[]; error: string | null }> {
-  const key = process.env.OUTSCRAPER_API_KEY;
+  const { key, urls, searchPath } = reviewSourceConfig();
   if (!key) {
     return {
       places: [],
-      error: "OUTSCRAPER_API_KEY is not set — add it to find businesses.",
+      error: "Review data connection is not configured — add the API key to find businesses.",
     };
+  }
+  if (urls.length === 0 || !searchPath) {
+    return { places: [], error: "Review data connection is not configured." };
   }
   const combined = joinQuery(query, locationHint);
   const params = new URLSearchParams({
@@ -75,10 +85,10 @@ export async function searchPlaces(
   });
 
   let lastError: string | null = null;
-  for (const host of OUTSCRAPER_HOSTS) {
+  for (const host of urls) {
     try {
-      const json = await getJson(`${host}${SEARCH_PATH}?${params.toString()}`, key);
-      // search-v3 is an async job too (returns { status:"Pending", results_location }).
+      const json = await getJson(`${host}${searchPath}?${params.toString()}`, key);
+      // The search endpoint is an async job too (returns { status:"Pending", results_location }).
       if (
         json &&
         typeof json === "object" &&
@@ -88,22 +98,22 @@ export async function searchPlaces(
         const job = await pollJob(loc, key);
         const places = parsePlaces(job, query);
         if (places.length > 0) return { places, error: null };
-        lastError = "Outscraper found no matching places for that query.";
+        lastError = "No matching businesses found for that query.";
       } else {
         const places = parsePlaces(json, query);
         if (places.length > 0) return { places, error: null };
-        lastError = "Outscraper found no matching places for that query.";
+        lastError = "No matching businesses found for that query.";
       }
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
     }
   }
-  return { places: [], error: lastError ?? "Outscraper search failed" };
+  return { places: [], error: lastError ?? "Review search failed." };
 }
 
 /**
- * Poll an Outscraper async job (results_location) until it succeeds, fails, or
- * times out. Returns the decoded job payload (usually { status, data }) or null.
+ * Poll an async job (results_location) until it succeeds, fails, or times out.
+ * Returns the decoded job payload (usually { status, data }) or null.
  */
 async function pollJob(loc: string, key: string): Promise<unknown> {
   const deadline = Date.now() + TOTAL_TIMEOUT_MS;
@@ -117,7 +127,7 @@ async function pollJob(loc: string, key: string): Promise<unknown> {
   }
 }
 
-/** Combine a business name with an optional location hint for the outscraper query. */
+/** Combine a business name with an optional location hint for the search query. */
 export function joinQuery(name: string, locationHint?: string): string {
   const hint = (locationHint ?? "").trim();
   const n = name.trim();
@@ -125,7 +135,7 @@ export function joinQuery(name: string, locationHint?: string): string {
   return `${n}, ${hint}`;
 }
 
-/** Defensively walk a search-v3 response into PlaceCandidate[] (array or {data:[...]}). */
+/** Defensively walk a search response into PlaceCandidate[] (array or {data:[...]}). */
 function parsePlaces(json: unknown, originalQuery: string): PlaceCandidate[] {
   let items: unknown[] = Array.isArray(json)
     ? json
@@ -169,12 +179,15 @@ export async function fetchGoogleReviews(
   query: string,
   opts?: { placeId?: string },
 ): Promise<FetchGoogleReviewsResult> {
-  const key = process.env.OUTSCRAPER_API_KEY;
+  const { key, urls, reviewsPath } = reviewSourceConfig();
   if (!key) {
     return {
       reviews: [],
-      error: "OUTSCRAPER_API_KEY is not set — add it in Settings to fetch real reviews.",
+      error: "Review data connection is not configured — add the API key to fetch real reviews.",
     };
+  }
+  if (urls.length === 0 || !reviewsPath) {
+    return { reviews: [], error: "Review data connection is not configured." };
   }
   const params = new URLSearchParams({
     query,
@@ -189,9 +202,9 @@ export async function fetchGoogleReviews(
   const deadline = Date.now() + TOTAL_TIMEOUT_MS;
   let lastError: string | null = null;
 
-  for (const host of OUTSCRAPER_HOSTS) {
+  for (const host of urls) {
     try {
-      const result = await fetchOnce(`${host}${REVIEWS_PATH}?${params.toString()}`, key);
+      const result = await fetchOnce(`${host}${reviewsPath}?${params.toString()}`, key);
       if (result.reviews.length > 0) return result; // got real reviews
       lastError = result.error;
     } catch (err) {
@@ -200,12 +213,12 @@ export async function fetchGoogleReviews(
     if (Date.now() > deadline) break;
   }
 
-  return { reviews: [], error: lastError ?? "Outscraper fetch failed" };
+  return { reviews: [], error: lastError ?? "Review fetch failed." };
 }
 
 async function fetchOnce(url: string, key: string): Promise<FetchGoogleReviewsResult> {
   const initial = await getJson(url, key);
-  // Async job shape (api.outscraper.cloud): HTTP 202 → { status, id, results_location }.
+  // Async job shape: HTTP 202 → { status, id, results_location }.
   if (
     initial &&
     typeof initial === "object" &&
@@ -220,13 +233,13 @@ async function fetchOnce(url: string, key: string): Promise<FetchGoogleReviewsRe
         const reviews = parseReviews((job as { data?: unknown }).data);
         return reviews.length > 0
           ? { reviews, error: null }
-          : { reviews: [], error: "Outscraper returned no reviews for that query." };
+          : { reviews: [], error: "No reviews returned for that query." };
       }
       if (status === "Failed" || status === "Error") {
-        return { reviews: [], error: "Outscraper job failed." };
+        return { reviews: [], error: "Review fetch failed." };
       }
       if (Date.now() > deadline) {
-        return { reviews: [], error: "Outscraper job timed out." };
+        return { reviews: [], error: "Review fetch timed out." };
       }
       await sleep(POLL_INTERVAL_MS);
     }
@@ -234,7 +247,7 @@ async function fetchOnce(url: string, key: string): Promise<FetchGoogleReviewsRe
   // Synchronous shape: array of places, or { data: [...] }.
   const reviews = parseReviews(initial);
   if (reviews.length > 0) return { reviews, error: null };
-  return { reviews: [], error: "Outscraper returned no reviews for that query." };
+  return { reviews: [], error: "No reviews returned for that query." };
 }
 
 async function getJson(url: string, key: string): Promise<unknown> {
@@ -246,7 +259,7 @@ async function getJson(url: string, key: string): Promise<unknown> {
       signal: controller.signal,
     });
     if (!res.ok) {
-      throw new Error(`Outscraper API responded ${res.status} (${res.statusText})`);
+      throw new Error(`Review data API responded ${res.status} (${res.statusText})`);
     }
     return await res.json();
   } finally {
@@ -314,7 +327,7 @@ function reviewDate(rec: Record<string, unknown>): string {
   return new Date().toISOString();
 }
 
-/** Parse Outscraper's "MM/DD/YYYY HH:MM:SS" datetime (and plain ISO). */
+/** Parse the API's "MM/DD/YYYY HH:MM:SS" datetime (and plain ISO). */
 function parseLegacyDate(value: string): string | null {
   const iso = new Date(value);
   if (!Number.isNaN(iso.getTime())) return iso.toISOString();

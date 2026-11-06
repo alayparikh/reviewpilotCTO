@@ -9,7 +9,7 @@ export const TONES: Tone[] = ["Friendly", "Professional", "Warm"];
 /** Which reviews the automation engine is allowed to auto-respond to. */
 export type RespondTo = "all" | "positive" | "negative";
 
-/** Where a review came from: seeded sample data, or fetched from Google via Outscraper. */
+/** Where a review came from: seeded sample data, or fetched from Google. */
 export type ReviewSource = "demo" | "google";
 
 export interface Review {
@@ -26,7 +26,7 @@ export interface Review {
   replyTone?: Tone | null;
   /** True when the reply is a demo template, not a real AI-generated one. */
   replyDemo?: boolean;
-  /** demo = seeded sample data; google = fetched from Google via Outscraper. */
+  /** demo = seeded sample data; google = fetched from Google. */
   source?: ReviewSource;
 }
 
@@ -38,7 +38,7 @@ export interface Settings {
   respondTo: RespondTo;
   /** When false, 1-2★ reviews are held for manual review. */
   autoRespondLowStars: boolean;
-  /** Business name or address used to fetch Google reviews via Outscraper. */
+  /** Business name or address used to fetch Google reviews. */
   businessQuery: string;
 }
 
@@ -47,8 +47,8 @@ export interface AppFlags {
   demoMode: boolean;
   /** True when ANTHROPIC_API_KEY is present — real AI replies are possible. */
   aiConnected: boolean;
-  /** True when OUTSCRAPER_API_KEY is present — real Google review fetching is possible. */
-  outscraperConnected: boolean;
+  /** True when REVIEWS_API_KEY is present — real Google review fetching is possible. */
+  reviewsSourceConnected: boolean;
 }
 
 export interface AppState {
@@ -75,7 +75,7 @@ export interface FetchReviewsResult {
 
 /**
  * A competitor whose Google reviews have been fetched for comparison. Reviews
- * may be real (fetched live via Outscraper, source "google") or seeded sample
+ * may be real (fetched live, source "google") or seeded sample
  * data (flagged `demo: true`) so they are never mistaken for real data.
  */
 export interface Competitor {

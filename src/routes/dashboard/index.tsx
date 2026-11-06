@@ -73,7 +73,7 @@ function Dashboard() {
       } else {
         setFetchMsg({
           ok: true,
-          text: `Fetched ${res.added} review${res.added === 1 ? "" : "s"} from Google (Outscraper).`,
+          text: `Fetched ${res.added} review${res.added === 1 ? "" : "s"} from Google.`,
         });
       }
       setState(await getAppState());
@@ -137,19 +137,19 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Google reviews fetch (Outscraper) */}
+        {/* Google reviews fetch */}
         <section className="mt-6 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900">
               Google reviews
               <span
                 className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                  state.flags.outscraperConnected
+                  state.flags.reviewsSourceConnected
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-gray-100 text-gray-500"
                 }`}
               >
-                {state.flags.outscraperConnected ? "Outscraper connected" : "Outscraper missing"}
+                {state.flags.reviewsSourceConnected ? "Google connected" : "Google not connected"}
               </span>
             </h2>
             <p className="mt-1 text-sm text-gray-500">

@@ -62,30 +62,30 @@ function SettingsPage() {
           </div>
         )}
 
-        {/* Reviews source — Google via Outscraper */}
+        {/* Reviews source (Google) */}
         <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold text-gray-900">Reviews source (Google)</h2>
             <ConnStatus
-              connected={flags.outscraperConnected}
-              label={flags.outscraperConnected ? "Connected" : "Missing"}
+              connected={flags.reviewsSourceConnected}
+              label={flags.reviewsSourceConnected ? "Connected" : "Missing"}
             />
           </div>
           <p className="mt-2 text-sm leading-relaxed text-gray-500">
-            ReviewPilot fetches Google reviews via the Outscraper API. Set the{" "}
-            <code className="rounded bg-gray-50 px-1.5 py-0.5 font-mono text-xs">OUTSCRAPER_API_KEY</code>{" "}
+            ReviewPilot fetches Google reviews from your connected review data source. Set the{" "}
+            <code className="rounded bg-gray-50 px-1.5 py-0.5 font-mono text-xs">REVIEWS_API_KEY</code>{" "}
             environment variable to enable real fetching.
           </p>
-          {flags.outscraperConnected ? (
+          {flags.reviewsSourceConnected ? (
             <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              ✓ OUTSCRAPER_API_KEY is set — "Fetch reviews now" on the dashboard pulls real Google
+              ✓ REVIEWS_API_KEY is set — "Fetch reviews now" on the dashboard pulls real Google
               reviews.
             </p>
           ) : (
             <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              ⚠️ OUTSCRAPER_API_KEY is not set — the dashboard shows seeded demo reviews until a key
-              is added. Reviews fetched from Google are labeled "Google (Outscraper)" so they are
-              never confused with demo data.
+              ⚠️ REVIEWS_API_KEY is not set — the dashboard shows seeded demo reviews until a key
+              is added. Reviews fetched from Google are labeled "Google" so they are never
+              confused with demo data.
             </p>
           )}
           <label className="mt-4 block">

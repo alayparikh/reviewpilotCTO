@@ -73,14 +73,14 @@ export function DemoChip({ children = "Demo" }: { children?: ReactNode }) {
 }
 
 /**
- * Where a review came from. google = fetched from Google via Outscraper and is
+ * Where a review came from. google = fetched from Google and is
  * real customer data; anything else is seeded sample data and is labeled as
  * such so it is never mistaken for a real review.
  */
 export function SourceBadge({ source }: { source?: "demo" | "google" }) {
   return source === "google" ? (
     <span className="inline-flex items-center rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
-      Google (Outscraper)
+      Google
     </span>
   ) : (
     <DemoChip>Demo data</DemoChip>

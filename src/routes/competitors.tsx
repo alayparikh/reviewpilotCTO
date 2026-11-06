@@ -59,7 +59,7 @@ function CompetitorsPage() {
         const n = res.competitor?.reviews.length ?? 0;
         setFetchMsg({
           ok: true,
-          text: `${res.added ? "Added" : "Updated"} ${res.competitor?.query ?? q} — fetched ${n} review${n === 1 ? "" : "s"} from Google (Outscraper).`,
+          text: `${res.added ? "Added" : "Updated"} ${res.competitor?.query ?? q} — fetched ${n} review${n === 1 ? "" : "s"} from Google.`,
         });
       }
       await refresh();
@@ -113,7 +113,7 @@ function CompetitorsPage() {
             <DemoBanner>
               <span className="font-semibold">Demo mode.</span> No database is connected — data lives
               in memory and resets on restart. The competitors below are sample demo data unless
-              fetched live with an Outscraper key.
+              fetched live with a connected review data source.
             </DemoBanner>
           </div>
         )}
@@ -125,23 +125,23 @@ function CompetitorsPage() {
               Add a competitor
               <span
                 className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                  flag.outscraperConnected
+                  flag.reviewsSourceConnected
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-gray-100 text-gray-500"
                 }`}
               >
-                {flag.outscraperConnected ? "Outscraper connected" : "Outscraper missing"}
+                {flag.reviewsSourceConnected ? "Google connected" : "Google not connected"}
               </span>
             </h2>
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Enter a competitor's business name or address — the same Google (Outscraper) fetch the
+            Enter a competitor's business name or address — the same Google review fetch the
             dashboard uses.
           </p>
 
-          {!flag.outscraperConnected && (
+          {!flag.reviewsSourceConnected && (
             <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              ⚠️ OUTSCRAPER_API_KEY is not set — real competitor fetching is disabled. Use the seeded
+              ⚠️ REVIEWS_API_KEY is not set — real competitor fetching is disabled. Use the seeded
               demo competitors below (labeled Demo data) to try the feature, or set the key in
               Settings to fetch real reviews.
             </p>
@@ -158,7 +158,7 @@ function CompetitorsPage() {
             />
             <button
               onClick={onFetch}
-              disabled={fetching || !flag.outscraperConnected}
+              disabled={fetching || !flag.reviewsSourceConnected}
               className="shrink-0 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {fetching ? "Fetching…" : "Fetch reviews"}
